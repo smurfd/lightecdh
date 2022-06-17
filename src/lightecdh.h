@@ -29,4 +29,5 @@ int lightecdh_shared_secret(const u32* privkey, const u32* pubkey, u32* res);
 
 void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign);
 void lightecdh_verify(const u32* publkey, u32* hash, u32* sign);
+
 #endif

@@ -53,7 +53,7 @@ void verify() {
   static u32 publ_b[ECC_PUB_KEY_SIZE];
   static u32 priv_b[ECC_PRV_KEY_SIZE];
   static u32 msg[ECC_PRV_KEY_SIZE];
-  static u32 sig[ECC_PUB_KEY_SIZE];
+  static u32 sign[ECC_PUB_KEY_SIZE];
   static u32 k[ECC_PRV_KEY_SIZE];
   static int initialized = 0;
 
@@ -81,8 +81,8 @@ void verify() {
     k[i] = prng_next();
   }
 
-  lightecdh_sign(priv_a, msg, k, (u32*)sig);
-  lightecdh_verify(publ_a, msg, (u32*)sig);
+  lightecdh_sign(priv_a, msg, k, sign);
+  lightecdh_verify(publ_a, msg, sign);
 }
 
 int main() {

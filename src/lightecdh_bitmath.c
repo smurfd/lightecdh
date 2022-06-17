@@ -22,8 +22,14 @@ void lightecdh_bit_copy(bit x, const bit y) {
 
 void lightecdh_bit_mod_n(bit x, const bit y) {
   extern bit ecdh_n;
-  for (int i = 0; i < BITVEC_NWORDS; ++i) {
-    x[i] = y[i] % ecdh_n[i];
+  if (y[0] % ecdh_n[0] == 0) {
+    for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+      x[i] = y[i] % ecdh_n[i];
+    }
+  } else {
+    for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+      x[i] = y[i];
+    }
   }
 }
 
