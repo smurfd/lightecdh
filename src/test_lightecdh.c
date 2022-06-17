@@ -8,12 +8,12 @@
 #include "lightecdh_curves.h"
 
 void genkeys() {
-  static u08 publ_a[ECC_PUB_KEY_SIZE];
-  static u08 priv_a[ECC_PRV_KEY_SIZE];
-  static u08 secr_a[ECC_PUB_KEY_SIZE];
-  static u08 publ_b[ECC_PUB_KEY_SIZE];
-  static u08 priv_b[ECC_PRV_KEY_SIZE];
-  static u08 secr_b[ECC_PUB_KEY_SIZE];
+  static u32 publ_a[ECC_PUB_KEY_SIZE];
+  static u32 priv_a[ECC_PRV_KEY_SIZE];
+  static u32 secr_a[ECC_PUB_KEY_SIZE];
+  static u32 publ_b[ECC_PUB_KEY_SIZE];
+  static u32 priv_b[ECC_PRV_KEY_SIZE];
+  static u32 secr_b[ECC_PUB_KEY_SIZE];
   static int initialized = 0;
 
   lightecdh_curves_set(NIST_K163);
@@ -48,13 +48,13 @@ void genkeys() {
 }
 
 void verify() {
-  static u08 publ_a[ECC_PUB_KEY_SIZE];
-  static u08 priv_a[ECC_PRV_KEY_SIZE];
-  static u08 publ_b[ECC_PUB_KEY_SIZE];
-  static u08 priv_b[ECC_PRV_KEY_SIZE];
-  static u08 msg[ECC_PRV_KEY_SIZE];
-  static u08 sig[ECC_PUB_KEY_SIZE];
-  static u08 k[ECC_PRV_KEY_SIZE];
+  static u32 publ_a[ECC_PUB_KEY_SIZE];
+  static u32 priv_a[ECC_PRV_KEY_SIZE];
+  static u32 publ_b[ECC_PUB_KEY_SIZE];
+  static u32 priv_b[ECC_PRV_KEY_SIZE];
+  static u32 msg[ECC_PRV_KEY_SIZE];
+  static u32 sig[ECC_PUB_KEY_SIZE];
+  static u32 k[ECC_PRV_KEY_SIZE];
   static int initialized = 0;
 
   lightecdh_curves_set(NIST_K163);
@@ -81,8 +81,8 @@ void verify() {
     k[i] = prng_next();
   }
 
-  lightecdh_sign(priv_a, msg, k, sig);
-  lightecdh_verify(publ_a, msg, k, sig);
+  lightecdh_sign(priv_a, msg, k, (u32*)sig);
+  lightecdh_verify(publ_a, msg, k, (u32*)sig);
 }
 
 int main() {

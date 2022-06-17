@@ -5,6 +5,14 @@
 #include "lightecdh.h"
 #include "lightecdh_bitmath.h"
 
+void print_bit(uint32_t* a, char* s, int len) {
+  printf("%s = [ ", s);
+  for (int i = 0; i < len; ++i) {
+    printf("0x%.8x ", (uint32_t)a[i]);
+  }
+  printf("]\n");
+}
+
 // Copy bits
 void lightecdh_bit_copy(bit x, const bit y) {
   for (int i = 0; i < BITVEC_NWORDS; ++i) {

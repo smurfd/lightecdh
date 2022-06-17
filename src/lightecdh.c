@@ -7,7 +7,7 @@
 #include "lightecdh_pointmath.h"
 
 // Generate keypair
-void lightecdh_keygen(u08* pubkey, u08* privkey) {
+void lightecdh_keygen(u32* pubkey, u32* privkey) {
   extern bit ecdh_x;
   extern bit ecdh_y;
   extern bit ecdh_n;
@@ -21,12 +21,12 @@ void lightecdh_keygen(u08* pubkey, u08* privkey) {
   lightecdh_point_mul((u32*)(pubkey), (u32*)(pubkey+BITVEC_NBYTES), (u32*)privkey);
 }
 
-int lightecdh_shared_secret(const u08* privkey, const u08* pubkey, u08* res) {
+int lightecdh_shared_secret(const u32* privkey, const u32* pubkey, u32* res) {
   // Do some basic validation of other party's public key
   if (!lightecdh_point_is_zero ((u32*)pubkey, (u32*)(pubkey + BITVEC_NBYTES)) && 
     lightecdh_point_on_curve((u32*)pubkey, (u32*)(pubkey + BITVEC_NBYTES))) {
     // Copy other side's public key to output
-    for (unsigned int i = 0; i < (BITVEC_NBYTES * 2); ++i) {
+    for (unsigned int i = 0; i < (ECC_PUB_KEY_SIZE); ++i) {
       res[i] = pubkey[i];
     }
 
@@ -38,22 +38,23 @@ int lightecdh_shared_secret(const u08* privkey, const u08* pubkey, u08* res) {
   }
 }
 
-void lightecdh_decompress_sig(u32* x, u32* y, u32* z) {
-  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+void lightecdh_decompress_sig(u32* x, u32* y, const u32* z) {
+  for (int i = 0; i < BITVEC_NWORDS; ++i) {
     x[i] = z[i];
-    y[i] = z[i+ECC_PRV_KEY_SIZE];
+    y[i] = z[i + BITVEC_NWORDS];
   }
 }
 
-void lightecdh_compress_sig(u32* x, u32* y, u32* z) {
-  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+void lightecdh_compress_sig(u32* x, const u32* y, const u32* z) {
+  for (int i = 0; i < BITVEC_NWORDS; ++i) {
     x[i] = y[i];
-    x[i+ECC_PRV_KEY_SIZE] = z[i];
+    x[i + BITVEC_NWORDS] = z[i];
   }
 }
 
-void lightecdh_sign(const u08* privkey, u08* hash, u08* rnd, u08* sig) {
-  bit r, s, z, rx, ry, kn, rp, h, hn, k;
+void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign) {
+  bit z, rx, ry, kn, rp, h, hn, k;
+  sig r, s;
   extern bit ecdh_n;
   extern bit ecdh_x;
   extern bit ecdh_y;
@@ -61,8 +62,12 @@ void lightecdh_sign(const u08* privkey, u08* hash, u08* rnd, u08* sig) {
 
   printf("lengths : %lu %d %d %d: %d\n", BITVEC_NBYTES, BITVEC_NWORDS, BITVEC_NBITS, ECC_PRV_KEY_SIZE, lightecdh_bit_degree(ecdh_n));
 
-  lightecdh_bit_zero(r);
-  lightecdh_bit_zero(s);
+  //lightecdh_bit_zero(r);
+  //lightecdh_bit_zero(s);
+  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    r[i] = 0;
+    s[i] = 0;
+  }
   lightecdh_bit_copy(z, (u32*)hash);
 
   nb = lightecdh_bit_degree(ecdh_n);
@@ -77,35 +82,38 @@ void lightecdh_sign(const u08* privkey, u08* hash, u08* rnd, u08* sig) {
   lightecdh_bit_mul(s, k, ry);
   lightecdh_bit_mod_n(r, r);
 
-  // Calculate the signature proof: s = k−1∗(h+r∗privKey)(modn)
+  // Calculate the signature proof: s = k−1∗(h+r∗privKey)(mod n)
   lightecdh_bit_neg(kn, k);
   lightecdh_bit_mul(rp, r, (u32*)privkey);
   lightecdh_bit_add(h, (u32*)hash, rp);  // h needs mod n before?
   lightecdh_bit_mod_n(hn, h);
   lightecdh_bit_mul(s, hn, kn);
-  lightecdh_compress_sig((u32*)sig, r, s);
+  lightecdh_compress_sig((u32*)sign, r, s);
 
-//The modular inverse  is an integer, such that  k ∗k−1≡1(modn)
-//​Return the signature {r, s}.
-  for (int i=0; i<BITVEC_NWORDS; ++i) {
+  //The modular inverse  is an integer, such that  k ∗ k^(−1)≡1(mod n)
+  //​Return the signature {r, s}.
+  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
     printf(" +++ %.8x %.8x\n", (u32)r[i], (u32)s[i]);
   }
-
 }
 
-void lightecdh_verify(const u08* publkey, u08* hash, u08* rnd, u08* sig) {
+void lightecdh_verify(const u32* publkey, u32* hash, u32* rnd, u32* sign) {
   bit z, s1, hs, rs, pubs, rx, ry, px, py;
+  sig r, s;
   extern bit ecdh_x;
   extern bit ecdh_y;
-  u08 r[ECC_PRV_KEY_SIZE];
-  u08 s[ECC_PRV_KEY_SIZE];
+
+  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    r[i] = 0;
+    s[i] = 0;
+  }
   lightecdh_bit_copy(z, (u32*)rnd); // just to avoid warnings for not used variables
 
 // Calculate the message hash, with the same cryptographic hash function used during the signing: h = hash(msg)
   //lightecdh_bit_copy(z, (u32*)hash);
 
 // Calculate the modular inverse of the signature proof: s1 = s^{-1} modn
-  lightecdh_decompress_sig((u32*)r, (u32*)s, (u32*)sig);
+  lightecdh_decompress_sig((u32*)r, (u32*)s, (u32*)sign);
   lightecdh_bit_neg(s1, (u32*)s);
   lightecdh_bit_mod_n(s1, s1);
 
@@ -123,7 +131,7 @@ void lightecdh_verify(const u08* publkey, u08* hash, u08* rnd, u08* sig) {
 // Take from R' its x-coordinate: r' = R'.x
 
 // Calculate the signature validation result by comparing whether r' == r
-  for (int i=0; i<BITVEC_NWORDS; ++i) {
-    printf(" --- %.8x %.8x\n", (u32)px[i], (u32)rx[i]);
+  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    printf(" --- %.8x %.8x %.8x %.8x\n", (u32)px[i], (u32)rx[i], (u32)r[i], (u32)s[i]);
   }
 }

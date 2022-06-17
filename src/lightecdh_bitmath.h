@@ -7,6 +7,7 @@
 #ifndef LIGHTECDH_BITMATH_H 
 #define LIGHTECDH_BITMATH_H 1
 
+void print_bit(uint32_t* a, char* s, int len);
 void lightecdh_bit_copy(bit x, const bit y);
 void lightecdh_bit_clear(bit x, const u32 idx);
 void lightecdh_bit_zero(bit x);
