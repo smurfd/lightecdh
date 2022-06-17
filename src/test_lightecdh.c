@@ -17,7 +17,7 @@ void genkeys() {
   static int initialized = 0;
 
   lightecdh_curves_set(NIST_K163);
-  
+
   if (!initialized) {
     prng_init((u32)(0xea1 ^ 0x31ee7 ^ 42) | 0xe1ee77ee | 31337);
     initialized = 1;
@@ -48,11 +48,46 @@ void genkeys() {
 }
 
 void verify() {
+  static u08 publ_a[ECC_PUB_KEY_SIZE];
+  static u08 priv_a[ECC_PRV_KEY_SIZE];
+  static u08 publ_b[ECC_PUB_KEY_SIZE];
+  static u08 priv_b[ECC_PRV_KEY_SIZE];
+  static u08 msg[ECC_PRV_KEY_SIZE];
+  static u08 sig[ECC_PUB_KEY_SIZE];
+  static u08 k[ECC_PRV_KEY_SIZE];
+  static int initialized = 0;
 
+  lightecdh_curves_set(NIST_K163);
+  
+  if (!initialized) {
+    prng_init((u32)(0xea1 ^ 0x31ee7 ^ 42) | 0xe1ee77ee | 31337);
+    initialized = 1;
+  }
+
+  // 1. Alice picks a (secret) random natural number 'a', calculates P = a * g and sends P to Bob.
+  for (u32 i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    priv_a[i] = prng_next();
+  }
+  lightecdh_keygen(publ_a, priv_a);
+
+  // 2. Bob picks a (secret) random natural number 'b', calculates Q = b * g and sends Q to Alice.
+  for (u32 i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    priv_b[i] = prng_next();
+  }
+  lightecdh_keygen(publ_b, priv_b);
+
+  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    msg[i] = priv_a[i] ^ prng_next();
+    k[i] = prng_next();
+  }
+
+  lightecdh_sign(priv_a, msg, k, sig);
+  lightecdh_verify(publ_a, msg, k, sig);
 }
 
 int main() {
-  genkeys();
-  verify();
-  printf("OK!\n");
+  genkeys(); // Works
+  verify();  // does not work, guessing it has todo with size of keys/signatures and what not.
+
+  printf("OK! (but we are not ok yet :))\n");
 }

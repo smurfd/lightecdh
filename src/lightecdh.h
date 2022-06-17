@@ -25,4 +25,7 @@ typedef uint32_t bit[BITVEC_NWORDS];
 
 void lightecdh_keygen(u08* pubkey, u08* privkey);
 int lightecdh_shared_secret(const u08* privkey, const u08* pubkey, u08* res);
+
+void lightecdh_sign(const u08* privkey, u08* hash, u08* rnd, u08* sig);
+void lightecdh_verify(const u08* publkey, u08* hash, u08* rnd, u08* sig);
 #endif

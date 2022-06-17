@@ -13,6 +13,6 @@
 #define NIST_B571  9
 #define NIST_K571 10
 
-void lightecdh_curves_set(int c);
+void lightecdh_curves_set();
 
 #endif

@@ -12,6 +12,19 @@ void lightecdh_bit_copy(bit x, const bit y) {
   }
 }
 
+void lightecdh_bit_mod_n(bit x, const bit y) {
+  extern bit ecdh_n;
+  for (int i = 0; i < BITVEC_NWORDS; ++i) {
+    x[i] = y[i] % ecdh_n[i];
+  }
+}
+
+void lightecdh_bit_neg(bit x, const bit y) {
+  for (int i = 0; i < BITVEC_NWORDS; ++i) {
+    x[i] = y[i]^(-1);
+  }
+}
+
 // Clear bit
 void lightecdh_bit_clear(bit x, const u32 idx) {
   x[idx / 32U] &= ~(1U << (idx & 31U));
