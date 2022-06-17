@@ -82,7 +82,7 @@ void verify() {
   }
 
   lightecdh_sign(priv_a, msg, k, (u32*)sig);
-  lightecdh_verify(publ_a, msg, k, (u32*)sig);
+  lightecdh_verify(publ_a, msg, (u32*)sig);
 }
 
 int main() {
