@@ -97,42 +97,49 @@ void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign) {
 }
 
 void lightecdh_verify(const u32* publkey, u32* hash, u32* sign) {
-  bit hs, rs, rx, ry;
-  sig r, s, s1, px, py, pubs, rm;
+  bit hs, rs;
+  sig r, s, s1, px, py, pubs, rm, z, rx, ry;
   extern bit ecdh_x;
   extern bit ecdh_y;
 
   for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
     r[i] = 0;
     s[i] = 0;
+    px[i] = 0;
+    py[i] = 0;
+    pubs[i] = 0;
+    rx[i] = 0;
+    ry[i] = 0;
+
   }
 
   // Calculate the message hash, with the same cryptographic hash function used during the signing: h = hash(msg)
-  //lightecdh_bit_copy(z, (u32*)hash);
+  lightecdh_bit_copy(z, hash);
 
   // Calculate the modular inverse of the signature proof: s1 = s^{-1} mod n
   lightecdh_decompress_sig(r, s, sign);
 
-  lightecdh_bit_neg(s1, (u32*)s);
+  lightecdh_bit_neg(s1, s);
   lightecdh_bit_mod_n(s1, s1);
 
   // Recover the random point used during the signing: R' = (h * s1) * G + (r * s1) * pubKey
-  lightecdh_bit_mul(hs, s1, hash);
+  lightecdh_bit_mul(hs, s1, z);
+
   lightecdh_bit_mul(rs, s1, r);
   lightecdh_bit_mul(pubs, rs, publkey);
   lightecdh_point_copy(rx, ry, ecdh_x, ecdh_y);
   for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
     printf(" *** %.8x %.8x %.8x\n", rx[i], ry[i], pubs[i]);
   }
-//  lightecdh_bit_mul(rx, rx, rs);
-//  lightecdh_bit_mul(ry, ry, rs);
-  lightecdh_point_mul(rx, ry, rs);
+
+  lightecdh_bit_mul(rx, rx, hs);
+  lightecdh_bit_mul(ry, ry, hs);
   for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
     printf(" ***** %.8x %.8x %.8x\n", rx[i], ry[i], pubs[i]);
   }
-  //lightecdh_bit_mul(px, rx, pubs);
-  //lightecdh_bit_mul(py, ry, pubs);
-  lightecdh_point_mul(px, py, pubs);
+  lightecdh_bit_add(px, rx, pubs);
+  lightecdh_bit_add(py, ry, pubs);
+
   lightecdh_bit_mod_n(rm, px);
   // Take from R' its x-coordinate: r' = R'.x
 
@@ -143,33 +150,5 @@ void lightecdh_verify(const u32* publkey, u32* hash, u32* sign) {
   printf("lengths : %lu %d %d %d\n", BITVEC_NBYTES, BITVEC_NBITS, BITVEC_NWORDS, ECC_PRV_KEY_SIZE);
 
   printf("degree: %d %d %d %d %d\n", lightecdh_bit_degree(px),lightecdh_bit_degree(rx), lightecdh_bit_degree(r), lightecdh_bit_degree(s), lightecdh_bit_degree(rm));
-
-/*
-The r from the signature is there in px, but in the wrong place. hmmm why?
- ---- px ----- rx ----- r ------ s ------ rm ---------------------
- ---  a5b62c25 9b049df8|54de6709 cc5926c0 a5b62c25
- ---  3cf48f64 d5013881|33914597 0b72bf06 3cf48f64
- ---  511c0801 e1088b0b|cceb0614 6b862ee1 511c0801
- ---  e2205ecb 585f83b0|eba5cbbc ab245251 e2205ecb
- ---  f215ab3f 779f8814|18d547d8 15e2f2ac f215ab3f
- ---  00000001 00000001|b3094dc3 e3c9cf1b 00000001
- ---  1853e085 e2b10ea2 00000000 00000000 1853e085
- ---  000000a3 c65713a0 00000000 00000000 000000a3
- ---  6d05b550 8821bbb1 00000000 00000000 6d05b550
- ---  00000001 5618786e 00000000 00000000 00000001
- ---  6d05b620 66cbaa62 00000000 00000000 6d05b620
- ---  00000001 d67117e4 00000000 00000000 00000001
- --- |54de6709 5faaca83 00000000 00000000 54de6709
- --- |33914597 e5e81e6b 00000000 00000000 33914597
- --- |cceb0614 39dc077d 00000000 00000000 cceb0614
- --- |eba5cbbc ec6cc739 00000000 00000000 eba5cbbc
- --- |18d547d8 f023b766 00000000 00000000 18d547d8
- --- |b3094dc3 238f5526 00000000 00000000 b3094dc3
- ---  00000000 b7c70094 00000000 00000000 00000000
- ---  00000000 87238572 00000000 00000000 00000000
- ---  00000000 00000000 00000000 00000000 00000000
- ---  00000000 00000000 00000000 00000000 00000000
- ---  00000000 00000000 00000000 00000000 00000000
- ---  00000000 00000000 00000000 00000000 00000000
-*/
+  printf("equal? %d\n", lightecdh_bit_equal(r, rx));
 }
