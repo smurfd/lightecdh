@@ -6,8 +6,7 @@
 
 // Pseudo-random number generator inspired / stolen from: http://burtleburtle.net/bob/rand/smallprng.html
 // pseudo random number generator with 128 bit internal state... probably not suited for cryptographical usage
-
-#ifndef LIGHTECDH_RANDOM_H 
+#ifndef LIGHTECDH_RANDOM_H
 #define LIGHTECDH_RANDOM_H 1
 
 typedef struct {

@@ -66,7 +66,7 @@ void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign) {
     s[i] = 0;
     rm[i] = 0;
   }
-  lightecdh_bit_copy(z, (u32*)hash);
+  lightecdh_bit_copy(z, hash);
 
   nb = lightecdh_bit_degree(ecdh_n);
   for (u32 i = (nb - 1); i < BITVEC_NBYTES; ++i) {
@@ -89,12 +89,10 @@ void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign) {
   lightecdh_bit_add(h, hash, rp);  // h needs mod n before?
   lightecdh_bit_mod(hn, h, ecdh_n);
   lightecdh_bit_mul(s, hn, kn);
-  lightecdh_compress_sig(sign, rm, s);
+
   //The modular inverse  is an integer, such that  k ∗ k^(−1)≡1(mod n)
   //​Return the signature {r, s}.
-  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
-    printf(" +++ %.8x %.8x\n", r[i], s[i]);
-  }
+  lightecdh_compress_sig(sign, rm, s);
 }
 
 void lightecdh_verify(const u32* publkey, u32* hash, u32* sign) {
@@ -129,29 +127,20 @@ void lightecdh_verify(const u32* publkey, u32* hash, u32* sign) {
   lightecdh_bit_mul(rs, s1, r);
   lightecdh_bit_mul(pubs, rs, publkey);
   lightecdh_point_copy(rx, ry, ecdh_x, ecdh_y);
-  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
-    printf(" *** %.8x %.8x %.8x\n", rx[i], ry[i], pubs[i]);
-  }
 
   lightecdh_bit_mul(rx, rx, hs);
   lightecdh_bit_mul(ry, ry, hs);
-  for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
-    printf(" ***** %.8x %.8x %.8x\n", rx[i], ry[i], pubs[i]);
-  }
+
   lightecdh_bit_add(px, rx, pubs);
   lightecdh_bit_add(py, ry, pubs);
 
   lightecdh_bit_mod(rm, px, ecdh_n);
   // Take from R' its x-coordinate: r' = R'.x
-
   // Calculate the signature validation result by comparing whether r' == r
   for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
     printf(" --- %.8x %.8x %.8x %.8x %.8x\n", px[i], rx[i], r[i], s[i], rm[i]);
   }
-  printf("lengths : %lu %d %d %d\n", BITVEC_NBYTES, BITVEC_NBITS, BITVEC_NWORDS, ECC_PRV_KEY_SIZE);
-
-  printf("degree: %d %d %d %d %d\n", lightecdh_bit_degree(px),lightecdh_bit_degree(rx), lightecdh_bit_degree(r), lightecdh_bit_degree(s), lightecdh_bit_degree(rm));
-  printf("equal? %d\n", lightecdh_bit_equal(r, rx));
+  printf("equal? %d\n", lightecdh_bit_equal(r, rm));
 }
 
 void lightecdh_sign_wikipedia(const u32* privkey, u32* hash, u32* rnd, u32* sign) {
@@ -167,7 +156,7 @@ void lightecdh_sign_wikipedia(const u32* privkey, u32* hash, u32* rnd, u32* sign
   lightecdh_bit_copy(z, hash);
 
   // Select a cryptographically secure random integer k from [1 , n − 1]
-  lightecdh_bit_copy(k, hash);
+  lightecdh_bit_copy(k, rnd);
 
   // Calculate the curve point ( x1 , y1 ) = k × G
   lightecdh_point_copy(x, y, ecdh_x, ecdh_y);
