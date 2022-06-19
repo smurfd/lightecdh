@@ -12,7 +12,12 @@ void lightecdh_bit_copy(bit x, const bit y);
 void lightecdh_bit_clear(bit x, const u32 idx);
 void lightecdh_bit_zero(bit x);
 void lightecdh_bit_neg(bit x, const bit y);
-void lightecdh_bit_mod_n(bit x, const bit y);
+void lightecdh_bit_neg1(bit x, const bit y);
+void lightecdh_bit_mod(bit x, const bit y, const bit z);
+/*void lightecdh_bit_mod_n(bit x, const bit y);
+void lightecdh_bit_mod_p(bit x, const bit y);
+void lightecdh_bit_mod_x(bit x, const bit y);
+void lightecdh_bit_mod_b(bit x, const bit y);*/
 int lightecdh_bit_is_zero(const bit x);
 int lightecdh_bit_degree(const bit x);
 void lightecdh_bit_add(bit z, const bit x, const bit y);

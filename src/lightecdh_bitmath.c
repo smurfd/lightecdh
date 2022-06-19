@@ -19,15 +19,66 @@ void lightecdh_bit_copy(bit x, const bit y) {
     x[i] = y[i];
   }
 }
+/*
+void lightecdh_bit_mod_x(bit x, const bit y) {
+  extern bit ecdh_x;
+  if (y[0] % ecdh_x[0] == 0) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i] % ecdh_x[i];
+    }
+  } else {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i];
+    }
+  }
+}
+
+void lightecdh_bit_mod_b(bit x, const bit y) {
+  extern bit ecdh_b;
+  if (y[0] % ecdh_b[0] == 0) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i] % ecdh_b[i];
+    }
+  } else {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i];
+    }
+  }
+}
 
 void lightecdh_bit_mod_n(bit x, const bit y) {
   extern bit ecdh_n;
   if (y[0] % ecdh_n[0] == 0) {
-    for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
       x[i] = y[i] % ecdh_n[i];
     }
   } else {
-    for (int i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i];
+    }
+  }
+}
+
+void lightecdh_bit_mod_p(bit x, const bit y) {
+  extern bit ecdh_p;
+  if (y[0] % ecdh_p[0] == 0) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i] % ecdh_p[i];
+    }
+  } else {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i];
+    }
+  }
+}
+*/
+void lightecdh_bit_mod(bit x, const bit y, const bit z) {
+  if (y[0] % z[0] == 0) {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i] % z[i];
+    }
+  } else {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
       x[i] = y[i];
     }
   }
@@ -37,6 +88,20 @@ void lightecdh_bit_neg(bit x, const bit y) {
   for (int i = 0; i < BITVEC_NWORDS; ++i) {
     x[i] = y[i]^(-1);
   }
+}
+
+void lightecdh_bit_neg1(bit x, const bit y) {
+  for (int i = 0; i < BITVEC_NWORDS; ++i) {
+    x[i] = y[i];
+  }
+  printf(":: %.8x %.8x %.8x, %.8x %.8x\n", x[0], -x[0], x[0]*(-0xffffffffL), x[BITVEC_NWORDS-1],  x[BITVEC_NWORDS-1]+0x00000001 );
+  x[0] = x[0]*(-0xffffffffL);
+  int xx = 0;
+  for (int j = BITVEC_NWORDS-1; j>=0; j--) {
+    if (x[j] != 0)
+      xx = j;
+  }
+  x[xx] = x[xx] + 0x00000001UL;
 }
 
 // Clear bit
