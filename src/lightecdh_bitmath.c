@@ -22,9 +22,23 @@ void lightecdh_bit_copy(bit x, const bit y) {
 
 void lightecdh_bit_mod(bit x, const bit y, const bit z) {
   // TODO: this is not working!
-  if (y[0] % z[0] == 0) {
+  if (y[0] % z[0] != 0) {
     for (int i = 0; i < BITVEC_NWORDS; ++i) {
       x[i] = y[i] % z[i];
+    }
+  } else {
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i];
+    }
+  }
+}
+
+void lightecdh_bit_mod1(bit x, const bit y, const bit z) {
+  // if y is divisable in z, should be enough to check 1st digit
+  if (y[0] >= z[0]) {
+    uint32_t w = (uint32_t)(y[0] / z[0]);
+    for (int i = 0; i < BITVEC_NWORDS; ++i) {
+      x[i] = y[i] - (z[i] * w);
     }
   } else {
     for (int i = 0; i < BITVEC_NWORDS; ++i) {
@@ -40,17 +54,18 @@ void lightecdh_bit_neg(bit x, const bit y) {
 }
 
 void lightecdh_bit_neg1(bit x, const bit y) {
+  int j = 0;
   for (int i = 0; i < BITVEC_NWORDS; ++i) {
     x[i] = y[i];
   }
-  printf(":: %.8x %.8x %.8x, %.8x %.8x\n", x[0], -x[0], x[0]*(-0xffffffffL), x[BITVEC_NWORDS-1],  x[BITVEC_NWORDS-1]+0x00000001 );
-  x[0] = x[0]*(-0xffffffffL);
-  int xx = 0;
-  for (int j = BITVEC_NWORDS-1; j>=0; j--) {
-    if (x[j] != 0)
-      xx = j;
+  x[0] = x[0] * (-0xffffffffL);
+
+  for (int i = BITVEC_NWORDS-1; i >= 0; i--) {
+    if (x[i] != 0) {
+      j = i;
+    }
   }
-  x[xx] = x[xx] + 0x00000001UL;
+  x[j] = x[j] + 0x00000001UL;
 }
 
 // Clear bit
@@ -207,6 +222,35 @@ void lightecdh_bit_lshift(bit x, const bit y, int nb) {
       x[i]  = (x[i] << nb) | (x[i - 1] >> (32 - nb));
     }
     x[0] <<= nb;
+  }
+}
+
+// right-shift by 'count' digits (maby?)
+void lightecdh_bit_rshift(bit x, const bit y, int nb) {
+  int i, j;
+  int nw = (nb / 32);
+
+  // Shift whole words first if nwords > 0
+  for (i = 0; i < nw; ++i) {
+    // Zero-initialize from least-significant word until offset reached
+    x[i] = 0;
+  }
+  j=0;
+  // Copy to x output
+  while (i < BITVEC_NWORDS) {
+    x[i] = y[j];
+    i += 1;
+    j += 1;
+  }
+
+  // Shift the rest if count was not multiple of bitsize of DTYPE
+  nb &= 31;
+  if (nb != 0) {
+    // Left shift rest
+    for (int i = (BITVEC_NWORDS - 1); i > 0; --i) {
+      x[i]  = (x[i] >> nb) | (x[i - 1] << (32 - nb));
+    }
+    x[0] >>= nb;
   }
 }
 

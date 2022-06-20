@@ -81,8 +81,8 @@ void verify() {
     k[i] = prng_next();
   }
 
-  lightecdh_sign_pdf(priv_a, msg, k, sign);
-  lightecdh_verify_pdf(publ_a, msg, sign);
+  lightecdh_sign(priv_a, msg, k, sign);
+  lightecdh_verify(publ_a, msg, sign);
 }
 
 int main() {
