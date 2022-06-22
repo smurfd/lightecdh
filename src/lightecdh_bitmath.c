@@ -35,16 +35,23 @@ void lightecdh_bit_mod(bit x, const bit y, const bit z) {
 
 void lightecdh_bit_mod1(bit x, const bit y, const bit z) {
   // if y is divisable in z, should be enough to check 1st digit
+  print_bit((u32*)y, "y", BITVEC_NWORDS);
+  print_bit((u32*)z, "z", BITVEC_NWORDS);
+
   if (y[0] >= z[0]) {
     uint32_t w = (uint32_t)(y[0] / z[0]);
     for (int i = 0; i < BITVEC_NWORDS; ++i) {
       x[i] = y[i] - (z[i] * w);
+      /*if (z[i] * w >= y[i]) {
+        x[i] = y[i] - (z[i] * w);
+      } else x[i] = 0x00000000;*/
     }
   } else {
     for (int i = 0; i < BITVEC_NWORDS; ++i) {
       x[i] = y[i];
     }
   }
+  print_bit((u32*)x, "x", BITVEC_NWORDS);
 }
 
 void lightecdh_bit_neg(bit x, const bit y) {
