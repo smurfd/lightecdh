@@ -9,26 +9,26 @@
 
 // Generate keypair
 void lightecdh_keygen(u32* pubkey, u32* privkey, cur* cc) {
-  lightecdh_point_copy((u32*)(pubkey), (u32*)(pubkey + (*cc).NBYT), (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy((u32*)(pubkey), (u32*)(pubkey + (*cc).NBYT), (*cc).ecdh_x, (*cc).ecdh_y, cc);
 
   int nb = lightecdh_bit_degree((*cc).ecdh_n);
   for (int i = (nb - 1); i < ((((*cc).DEGR + 3 + 31) / 32) * 32); ++i) {
     lightecdh_bit_clear(privkey, i);
   }
-  lightecdh_point_mul(pubkey, pubkey + (*cc).NBYT, privkey);
+  lightecdh_point_mul(pubkey, pubkey + (*cc).NBYT, privkey, cc);
 }
 
 int lightecdh_shared_secret(const u32* privkey, const u32* pubkey, u32* res, cur* cc) {
   // Do some basic validation of other party's public key
-  if (!lightecdh_point_is_zero (pubkey, pubkey + (*cc).NBYT) &&
-    lightecdh_point_on_curve(pubkey, pubkey + (*cc).NBYT)) {
+  if (!lightecdh_point_is_zero (pubkey, pubkey + (*cc).NBYT, cc) &&
+    lightecdh_point_on_curve(pubkey, pubkey + (*cc).NBYT, cc)) {
     // Copy other side's public key to output
     for (u32 i = 0; i < (u32)(*cc).PRIV * 2; ++i) {
       res[i] = pubkey[i];
     }
 
     // Multiply other side's public key with own private key
-    lightecdh_point_mul(res, res + (*cc).NBYT, privkey);
+    lightecdh_point_mul(res, res + (*cc).NBYT, privkey, cc);
     return 1;
   } else {
     return 0;
@@ -63,7 +63,7 @@ void lightecdh_sign(const u32* privkey, u32* hash, u32* rnd, u32* sign, cur* cc)
 
   // Calculate the random point R = k * G and take its x-coordinate: r = R.x
   lightecdh_bit_copy(k, rnd);
-  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y, cc);
 
   lightecdh_bit_mul(r, rx, k);
   lightecdh_bit_mul(s, ry, k);
@@ -94,7 +94,7 @@ void lightecdh_verify(const u32* publkey, u32* hash, u32* sign, cur* cc) {
   lightecdh_bit_mod1(s1, s1, (*cc).ecdh_n);
 
   // Recover the random point used during the signing: R' = (h * s1) * G + (r * s1) * pubKey
-  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y, cc);
   lightecdh_bit_mul(hs, s1, z);
   lightecdh_bit_mul(rs, rx, hs);
 
@@ -122,7 +122,7 @@ void lightecdh_sign_wikipedia(const u32* privkey, u32* hash, u32* rnd, u32* sign
   lightecdh_bit_copy(k, rnd);
 
   // Calculate the curve point ( x1 , y1 ) = k × G
-  lightecdh_point_copy(x, y, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(x, y, (*cc).ecdh_x, (*cc).ecdh_y, cc);
   lightecdh_bit_mul(x1, k, x);
   lightecdh_bit_mul(y1, k, y);
 
@@ -159,7 +159,7 @@ void lightecdh_verify_wikipedia(const u32* publkey, u32* hash, u32* sign, cur* c
   lightecdh_bit_mod1(u2, zr, (*cc).ecdh_n);
 
   // Calculate the curve point ( x1 , y1 ) = u1 × G + u2 × QA. If ( x1 , y1 ) = O then the signature is invalid.
-  lightecdh_point_copy(x, y, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(x, y, (*cc).ecdh_x, (*cc).ecdh_y, cc);
   lightecdh_bit_mul(x1, u1, x);
   lightecdh_bit_mul(x2, u2, publkey);
   lightecdh_bit_add(rx, x1, x2);
@@ -179,9 +179,9 @@ void lightecdh_sign_pdf(const u32* privkey, u32* hash, u32* rnd, u32* sign, cur*
 
   // sign
   // (x1, y1) = k × G(x, y) mod p
-  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y, cc);
   lightecdh_bit_copy(k, rnd);
-  lightecdh_point_mul(rx, rx, k);
+  lightecdh_point_mul(rx, rx, k, cc);
   lightecdh_bit_mod1(rm, rx, (*cc).ecdh_p);
 
   // r = x1 mod n
@@ -224,7 +224,7 @@ void lightecdh_verify_pdf(const u32* publkey, u32* hash, u32* sign, cur* cc) {
   lightecdh_bit_mod1(u2, ry, (*cc).ecdh_n);
 
   // (x2, y2) = (u1 × G(x, y) + u2 × Q(x, y)) mod n
-  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y);
+  lightecdh_point_copy(rx, ry, (*cc).ecdh_x, (*cc).ecdh_y, cc);
   lightecdh_bit_mul(px, u1, rx);
   lightecdh_bit_mul(py, u2, publkey);
   lightecdh_bit_add(rm, ry, px);
