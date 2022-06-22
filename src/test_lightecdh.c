@@ -8,15 +8,14 @@
 #include "lightecdh_curves.h"
 
 void genkeys() {
-  static u32 publ_a[ECC_PUB_KEY_SIZE];
-  static u32 priv_a[ECC_PRV_KEY_SIZE];
-  static u32 secr_a[ECC_PUB_KEY_SIZE];
-  static u32 publ_b[ECC_PUB_KEY_SIZE];
-  static u32 priv_b[ECC_PRV_KEY_SIZE];
-  static u32 secr_b[ECC_PUB_KEY_SIZE];
-  static int initialized = 0;
-
-  lightecdh_curves_set(NIST_K163);
+  cur* cc = lightecdh_curves_get(NIST_K163);
+  u32 publ_a[(*cc).PUBL];
+  u32 priv_a[(*cc).PRIV];
+  u32 secr_a[(*cc).PUBL];
+  u32 publ_b[(*cc).PUBL];
+  u32 priv_b[(*cc).PRIV];
+  u32 secr_b[(*cc).PUBL];
+  int initialized = 0;
 
   if (!initialized) {
     prng_init((u32)(0xea1 ^ 0x31ee7 ^ 42) | 0xe1ee77ee | 31337);
@@ -24,13 +23,13 @@ void genkeys() {
   }
 
   // 1. Alice picks a (secret) random natural number 'a', calculates P = a * g and sends P to Bob.
-  for (u32 i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+  for (u32 i = 0; i < (u32)(*cc).PRIV; ++i) {
     priv_a[i] = prng_next();
   }
   lightecdh_keygen(publ_a, priv_a, cc);
 
   // 2. Bob picks a (secret) random natural number 'b', calculates Q = b * g and sends Q to Alice.
-  for (u32 i = 0; i < ECC_PRV_KEY_SIZE; ++i) {
+  for (u32 i = 0; i < (u32)(*cc).PRIV; ++i) {
     priv_b[i] = prng_next();
   }
   lightecdh_keygen(publ_b, priv_b, cc);
@@ -42,19 +41,19 @@ void genkeys() {
   assert(lightecdh_shared_secret(priv_b, publ_a, secr_b, cc));
 
   // 5. Assert equality, i.e. check that both parties calculated the same value.
-  for (u32 i = 0; i < ECC_PUB_KEY_SIZE; ++i) {
+  for (u32 i = 0; i < (u32)(*cc).PUBL; ++i) {
     assert(secr_a[i] == secr_b[i]);
   }
   lightecdh_curves_end(cc);
 }
 
 void verify() {
-  static u32 publ_a[ECC_PUB_KEY_SIZE];
-  static u32 priv_a[ECC_PRV_KEY_SIZE];
-  static u32 msg[ECC_PRV_KEY_SIZE];
-  static u32 sign[ECC_PUB_KEY_SIZE];
-  static u32 k[ECC_PRV_KEY_SIZE];
   cur* cc = lightecdh_curves_get(NIST_K163);
+  u32 publ_a[(*cc).PUBL];
+  u32 priv_a[(*cc).PRIV];
+  u32 msg[(*cc).PRIV];
+  u32 sign[(*cc).PUBL];
+  u32 k[(*cc).PRIV];
 
   srand(time(0));
   srand(42);
