@@ -276,3 +276,102 @@ int lightecdh_bit_is_one(const bit x, cur* cc) {
   }
   return ret;
 }
+
+// Computes p_result = p_in << c, returning car.
+// Can modify in place (if p_result == p_in). 0 < p_shift < 64.
+u64 lee_lshift(u64 *r, u64 *p, uint q) {
+  u64 car = 0;
+  for (uint8_t i = 0; i < LEE_D; ++i) {
+    u64 temp = p[i];
+    r[i] = (temp << q) | car;
+    car = temp >> (64 - q);
+  }
+
+  return car;
+}
+
+// Computes p_vli = p_vli >> 1.
+void lee_rshift1(u64 *p) {
+  u64 *end = p;
+  u64 car = 0;
+
+  p += LEE_D;
+  while (p-- > end) {
+    u64 temp = *p;
+    *p = (temp >> 1) | car;
+    car = temp << 63;
+  }
+}
+
+// Computes p_result = p_left + p_right, returning car.
+// Can modify in place.
+u64 lee_add(u64 *r, u64 *p, u64 *q) {
+  u64 car = 0;
+  for (uint8_t i = 0; i < LEE_D; ++i) {
+    u64 sum = p[i] + q[i] + car;
+    if (sum != p[i]) {
+      car = (sum < p[i]);
+    }
+    r[i] = sum;
+  }
+  return car;
+}
+
+// Computes p_result = p_left - p_right, returning borrow.
+// Can modify in place.
+u64 lee_sub(u64 *r, u64 *p, u64 *q) {
+  u64 borrow = 0;
+  for (uint8_t i = 0; i < LEE_D; ++i) {
+    u64 diff = p[i] - q[i] - borrow;
+    if (diff != p[i]) {
+      borrow = (diff > p[i]);
+    }
+    r[i] = diff;
+  }
+  return borrow;
+}
+
+// Computes p_result = p_left * p_right.
+void lee_mul(u64 *r, u64 *p, u64 *q) {
+  u128 r01 = 0;
+  u64 r2 = 0;
+
+  // Compute each digit of p_result in sequence, maintaining the carries.
+  for (uint8_t k = 0; k < LEE_D * 2 - 1; ++k) {
+    uint min = (k < LEE_D ? 0 : (k + 1) - LEE_D);
+    for (uint8_t i = min; i <= k && i < LEE_D; ++i) {
+      u128 product = (u128)p[i] * q[k-i];
+      r01 += product;
+      r2 += (r01 < product);
+    }
+    r[k] = (u64)r01;
+    r01 = (r01 >> 64) | (((u128)r2) << 64);
+    r2 = 0;
+  }
+
+  r[LEE_D * 2 - 1] = (u64)r01;
+}
+
+// Computes p_result = p_left^2.
+void lee_sqr(u64 *r, u64 *p) {
+  u128 r01 = 0;
+  u64 r2 = 0;
+
+  for (uint8_t k = 0; k < LEE_D * 2 - 1; ++k) {
+    uint min = (k < LEE_D ? 0 : (k + 1) - LEE_D);
+    for (uint8_t i = min; i <= k && i <= k - i; ++i) {
+      u128 product = (u128)p[i] * p[k-i];
+      if (i < k - i) {
+        r2 += product >> 127;
+        product *= 2;
+      }
+      r01 += product;
+      r2 += (r01 < product);
+    }
+    r[k] = (u64)r01;
+    r01 = (r01 >> 64) | (((u128)r2) << 64);
+    r2 = 0;
+  }
+
+  r[LEE_D * 2 - 1] = (u64)r01;
+}

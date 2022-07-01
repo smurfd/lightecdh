@@ -34,4 +34,9 @@ typedef struct curves {
 
 cur* lightecdh_curves_get(int c);
 void lightecdh_curves_end(cur* cc);
+
+int lee_make_keys(u64 publ[LEE_B+1], u64 priv[LEE_B]);
+int lee_shar_secr(const u64 publ[LEE_B+1], const u64 priv[LEE_B], u64 secr[LEE_B]);
+int lee_sign(const u64 priv[LEE_B], const u64 hash[LEE_B], u64 sign[LEE_B*2]);
+int lee_vrfy(const u64 publ[LEE_B+1], const u64 hash[LEE_B], const u64 sign[LEE_B*2]);
 #endif

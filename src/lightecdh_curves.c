@@ -1,5 +1,8 @@
 #include "lightecdh.h"
 #include "lightecdh_curves.h"
+#include "lightecdh_bitmath.h"
+#include "lightecdh_pointmath.h"
+
 #include <string.h>
 
 cur* lightecdh_curves_init(cur* cc, bit ecdh_p, bit ecdh_b, bit ecdh_x, bit ecdh_y, bit ecdh_n, int ecdh_a, int ecdh_h, int ecdh_cd, int ecdh_pk) {
@@ -165,4 +168,135 @@ cur* lightecdh_curves_get(int c) {
   (*cc).NWOR = (((*cc).NBIT + 31) / 32);
   (*cc).NBYT = (sizeof(u32) + (*cc).NWOR);
   return cc;
+}
+
+// Make public key
+int lee_make_keys(u64 publ[LEE_B+1], u64 priv[LEE_B]) {
+  u64 private[LEE_D];
+  lee_p public;
+
+  do {
+    // Make sure the private key is in the range [1, n-1].
+    // For the supported curves, n is always large enough that we only need to
+    // subtract once at most.
+    if (lee_iszero(private)) {continue;}
+    if (lee_cmp(curve_n, private) != 1) {lee_sub(private, private, curve_n);}
+    lee_p_mul(&public, &curve_g, private, NULL);
+  } while(lee_p_iszero(&public));
+
+  lee_set(priv, private);
+  lee_set(publ + 1, public.x);
+  publ[0] = 2 + (public.y[0] & 0x01);
+
+  return 1;
+}
+
+// create a secret from the public and private key
+int lee_shar_secr(const u64 publ[LEE_B+1], const u64 priv[LEE_B], u64 secr[LEE_B]) {
+  lee_p public, product;
+  u64 private[LEE_D], random[LEE_D];
+
+  lee_p_decom(&public, publ);
+  lee_set(private, priv);
+
+  lee_p_mul(&product, &public, private, random);
+  lee_set(secr, product.x);
+
+  return !lee_p_iszero(&product);
+}
+
+// Create a signature from hash with private key
+int lee_sign(const u64 priv[LEE_B], const u64 hash[LEE_B], u64 sign[LEE_B*2]) {
+  u64 k[LEE_D], tmp[LEE_D], s[LEE_D];
+  lee_p p;
+
+  do {
+    if (lee_iszero(k)) {continue;}
+    if (lee_cmp(curve_n, k) != 1) {lee_sub(k, k, curve_n);}
+
+    // tmp = k * G
+    lee_p_mul(&p, &curve_g, k, NULL);
+
+    // r = x1 (mod n)
+    if (lee_cmp(curve_n, p.x) != 1) {lee_sub(p.x, p.x, curve_n);}
+  } while(lee_iszero(p.x));
+
+  lee_set(tmp, priv);
+  lee_m_mmul(s, p.x, tmp, curve_n); // s = r*d
+  lee_set(tmp, hash);
+  lee_m_add(s, tmp, s, curve_n);    // s = e + r*d
+  lee_m_inv(k, k, curve_n);         // k = 1 / k
+  lee_m_mmul(s, s, k, curve_n);     // s = (e + r*d) / k
+
+  lee_set(sign, p.x);
+  lee_set(sign + LEE_B, s);
+
+  return 1;
+}
+
+// Verify the signature
+int lee_vrfy(const u64 publ[LEE_B+1], const u64 hash[LEE_B], const u64 sign[LEE_B*2]) {
+  u64 tx[LEE_D], ty[LEE_D], tz[LEE_D], r[LEE_D], s[LEE_D];
+  u64 u1[LEE_D], u2[LEE_D], z[LEE_D], rx[LEE_D], ry[LEE_D];
+  lee_p public, sum;
+
+  lee_p_decom(&public, publ);
+  lee_set(r, sign);
+  lee_set(s, sign + LEE_B);
+
+  // r, s must not be 0.
+  if (lee_iszero(r) || lee_iszero(s)) {return 0;}
+  // r, s must be < n.
+  if (lee_cmp(curve_n, r) != 1 || lee_cmp(curve_n, s) != 1) {return 0;}
+
+  //Calculate u1 and u2.
+  lee_m_inv(z, s, curve_n);            // Z = s^-1
+  lee_set(u1, hash);
+  lee_m_mmul(u1, u1, z, curve_n);      // u1 = e/s
+  lee_m_mmul(u2, r, z, curve_n);       // u2 = r/s
+
+  // Calculate sum = G + Q.
+  lee_set(sum.x, public.x);
+  lee_set(sum.y, public.y);
+  lee_set(tx, curve_g.x);
+  lee_set(ty, curve_g.y);
+  lee_m_sub(z, sum.x, tx, curve_p);    // Z = x2 - x1
+  lee_p_add(tx, ty, sum.x, sum.y);
+  lee_m_inv(z, z, curve_p);            // Z = 1/Z
+  lee_p_appz(sum.x, sum.y, z);
+
+  // Use Shamir's trick to calculate u1*G + u2*Q
+  lee_p *points[4] = {NULL, &curve_g, &public, &sum};
+  uint numBits = (lee_bits(u1) > lee_bits(u2) ? lee_bits(u1) : lee_bits(u2));
+
+  lee_p *point = points[(!!lee_isset(u1, numBits-1)) |
+    ((!!lee_isset(u2, numBits-1)) << 1)];
+
+  lee_set(rx, point->x);
+  lee_set(ry, point->y);
+  lee_clear(z);
+  z[0] = 1;
+
+  for (int i = numBits - 2; i >= 0; --i) {
+    lee_p_double(rx, ry, z);
+    int index = (!!lee_isset(u1, i)) | ((!!lee_isset(u2, i)) << 1);
+    lee_p *point = points[index];
+    if (point) {
+      lee_set(tx, point->x);
+      lee_set(ty, point->y);
+      lee_p_appz(tx, ty, z);
+      lee_m_sub(tz, rx, tx, curve_p);  // Z = x2 - x1
+      lee_p_add(tx, ty, rx, ry);
+      lee_m_mul(z, z, tz);
+    }
+  }
+
+  lee_m_inv(z, z, curve_p);            // Z = 1/Z
+  lee_p_appz(rx, ry, z);
+
+  // v = x1 (mod n)
+  if (lee_cmp(curve_n, rx) != 1) {lee_sub(rx, rx, curve_n);}
+
+  // Accept only if v == r.
+  return (lee_cmp(rx, r) == 0);
 }

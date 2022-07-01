@@ -238,3 +238,62 @@ void lightecdh_verify_pdf(const u32* publkey, u32* hash, u32* sign, cur* cc) {
     printf(" --- %.8x %.8x %.8x %.8x %.8x\n", x2[i], r[i], rx[i], px[i], rm[i]);
   }
 }
+
+// Below is Borrowed / Stolen from https://github.com/jestan/easy-ecc
+
+// Clear p
+void lee_clear(u64 *p) {
+  for (uint8_t i = 0; i < LEE_D; ++i) {p[i] = 0;}
+}
+
+// Returns 1 if p == 0, 0 otherwise.
+int lee_iszero(u64 *p) {
+  for (uint8_t i = 0; i < LEE_D; ++i) {
+    if (p[i]) {return 0;}
+  }
+  return 1;
+}
+
+// Returns nonzero if bit q of p is set.
+u64 lee_isset(u64 *p, uint q) {
+  return (p[q / 64] & ((u64)1 << (q % 64)));
+}
+
+// Counts the number of 64-bit "digits" in p.
+uint lee_digits(u64 *p) {
+  int i;
+  // Search from the end until we find a non-zero digit.
+  // We do it in reverse because we expect that most digits will be nonzero.
+  for (i = LEE_D - 1; i >= 0 && p[i] == 0; --i) {}
+  return (i + 1);
+}
+
+// Counts the number of bits required for p.
+uint lee_bits(u64 *p) {
+  uint i, numDigits = lee_digits(p);
+  u64 digit;
+
+  if (numDigits == 0) {return 0;}
+
+  digit = p[numDigits - 1];
+  for (i = 0; digit; ++i) {digit >>= 1;}
+
+  return ((numDigits - 1) * 64 + i);
+}
+
+// Sets r = p.
+void lee_set(u64 *r, const u64 *p) {
+  for (uint8_t i = 0; i < LEE_D; ++i) {r[i] = p[i];}
+}
+
+// Returns sign of p - q.
+int lee_cmp(u64 *p, u64 *q) {
+  for (int i = LEE_D-1; i >= 0; --i) {
+    if (p[i] > q[i]) {
+      return 1;
+    } else if (p[i] < q[i]) {
+      return -1;
+    }
+  }
+  return 0;
+}

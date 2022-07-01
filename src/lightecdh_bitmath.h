@@ -30,4 +30,11 @@ void lightecdh_bit_rshift(bit x, const bit y, int nb, cur* cc);
 void lightecdh_bit_one(bit x, cur* cc);
 int lightecdh_bit_is_one(const bit x, cur* cc);
 int lightecdh_bit_equal(const bit x, const bit y, cur* cc);
+
+void lee_mul(u64 *r, u64 *p, u64 *q);
+void lee_sqr(u64 *r, u64 *p);
+void lee_rshift1(u64 *p);
+u64 lee_lshift(u64 *r, u64 *p, uint q);
+u64 lee_add(u64 *r, u64 *p, u64 *q);
+u64 lee_sub(u64 *r, u64 *p, u64 *q);
 #endif
