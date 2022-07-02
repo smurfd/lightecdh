@@ -451,47 +451,47 @@ void lee_m_sqrt(u64 a[LEE_D]) {
 
 // Computes p_result = (p_left * p_right) % p_mod.
 void lee_m_mmul(u64 *r, u64 *p, u64 *q, u64 *m) {
-  u64 product[2 * LEE_D], modMultiple[2 * LEE_D];
-  uint digitShift, bitShift, productBits, modBits = lee_bits(m);
+  u64 product[2 * LEE_D], mm[2 * LEE_D];
+  uint ds, bs, pb, mb = lee_bits(m);
 
   lee_mul(product, p, q);
-  productBits = lee_bits(product + LEE_D);
-  if (productBits) {productBits += LEE_D * 64;}
-  else {productBits = lee_bits(product);}
+  pb = lee_bits(product + LEE_D);
+  if (pb) {pb += LEE_D * 64;}
+  else {pb = lee_bits(product);}
 
-  if (productBits < modBits) { // product < p_mod.
+  if (pb < mb) { // product < p_mod.
     lee_set(r, product);
     return;
   }
 
-  // Shift p_mod by (leftBits - modBits). This multiplies p_mod by the largest
+  // Shift p_mod by (leftBits - mb). This multiplies p_mod by the largest
   // power of two possible while still resulting in a number less than p_left.
-  lee_clear(modMultiple);
-  lee_clear(modMultiple + LEE_D);
-  digitShift = (productBits - modBits) / 64;
-  bitShift = (productBits - modBits) % 64;
-  if (bitShift) {
-    modMultiple[digitShift + LEE_D] = lee_lshift(modMultiple + digitShift, m, bitShift);
+  lee_clear(mm);
+  lee_clear(mm + LEE_D);
+  ds = (pb - mb) / 64;
+  bs = (pb - mb) % 64;
+  if (bs) {
+    mm[ds + LEE_D] = lee_lshift(mm + ds, m, bs);
   } else {
-    lee_set(modMultiple + digitShift, m);
+    lee_set(mm + ds, m);
   }
 
   // Subtract all multiples of p_mod to get the remainder.
   lee_clear(r);
   r[0] = 1; // Use p_result as a temp var to store 1 (for subtraction)
-  while (productBits > LEE_D * 64 || lee_cmp(modMultiple, m) >= 0) {
-    int cmp = lee_cmp(modMultiple + LEE_D, product + LEE_D);
-    if (cmp < 0 || (cmp == 0 && lee_cmp(modMultiple, product) <= 0)) {
-      if (lee_sub(product, product, modMultiple)) { // borrow
+  while (pb > LEE_D * 64 || lee_cmp(mm, m) >= 0) {
+    int cmp = lee_cmp(mm + LEE_D, product + LEE_D);
+    if (cmp < 0 || (cmp == 0 && lee_cmp(mm, product) <= 0)) {
+      if (lee_sub(product, product, mm)) { // borrow
         lee_sub(product + LEE_D, product + LEE_D, r);
       }
-      lee_sub(product + LEE_D, product + LEE_D, modMultiple + LEE_D);
+      lee_sub(product + LEE_D, product + LEE_D, mm + LEE_D);
     }
-    u64 car = (modMultiple[LEE_D] & 0x01) << 63;
-    lee_rshift1(modMultiple + LEE_D);
-    lee_rshift1(modMultiple);
-    modMultiple[LEE_D-1] |= car;
-    --productBits;
+    u64 car = (mm[LEE_D] & 0x01) << 63;
+    lee_rshift1(mm + LEE_D);
+    lee_rshift1(mm);
+    mm[LEE_D-1] |= car;
+    --pb;
   }
   lee_set(r, product);
 }

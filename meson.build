@@ -1,4 +1,4 @@
-project('lightecdh', 'c', version : '0.1', default_options : ['warning_level=3'])
+project('lightecdh', 'c', version : '0.1', default_options : ['warning_level=3', 'optimization=3', 'buildtype=release'])
 
 lightecdh_curves = static_library('lightecdh_curves', 'src/lightecdh_curves.c')
 lightecdh_random = static_library('lightecdh_random', 'src/lightecdh_random.c')

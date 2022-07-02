@@ -75,27 +75,11 @@ void verify() {
   lightecdh_curves_end(cc);
 }
 
-void stuff() {
-  u64 sig[LEE_B*2], h[LEE_B*2], pubkey[LEE_B+1], privkey[LEE_B], sec[LEE_B];
-
-  prng_init((u64)(0xea1 ^ 0x31ee7 ^ 42) | 0xe1ee77ee | 31337);
-  for (int i = 0; i < LEE_B; ++i) {
-    usleep(10); h[i] = prng_next();
-  }
-
-      usleep(1); assert(lee_make_keys(pubkey, privkey));
-      usleep(1); assert(lee_shar_secr(pubkey, privkey, sec));
-      usleep(1); assert(lee_sign(privkey, h, sig));
-      usleep(1); assert(lee_vrfy(pubkey, h, sig));
-
-}
-
 int main(int argc, char **argv) {
   genkeys(); // Works
   verify();  // does not work, guessing it has todo with size of keys/signatures and what not.
 
   printf("OK! (but we are not ok yet :))\n");
-  stuff();
   u64 sig[LEE_B*2], h[LEE_B*2], pubkey[LEE_B+1], privkey[LEE_B], sec[LEE_B];
 
   prng_init((u64)(0xea1 ^ 0x31ee7 ^ 42) | 0xe1ee77ee | 31337);

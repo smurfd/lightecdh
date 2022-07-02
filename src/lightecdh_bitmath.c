@@ -277,6 +277,8 @@ int lightecdh_bit_is_one(const bit x, cur* cc) {
   return ret;
 }
 
+// Below is Borrowed / Stolen from https://github.com/jestan/easy-ecc
+
 // Computes p_result = p_in << c, returning car.
 // Can modify in place (if p_result == p_in). 0 < p_shift < 64.
 u64 lee_lshift(u64 *r, u64 *p, uint q) {

@@ -170,6 +170,8 @@ cur* lightecdh_curves_get(int c) {
   return cc;
 }
 
+// Below is Borrowed / Stolen from https://github.com/jestan/easy-ecc
+
 // Make public key
 int lee_make_keys(u64 publ[LEE_B+1], u64 priv[LEE_B]) {
   u64 private[LEE_D];
